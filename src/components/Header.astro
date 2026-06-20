@@ -6,19 +6,37 @@ interface Props {
 }
 
 const { currentPath = '/' } = Astro.props;
+const basePath = import.meta.env.BASE_URL;
+const normalizedBase = basePath === '/' ? '' : basePath.replace(/\/$/, '');
+
+const withBase = (path: string) => {
+	if (!normalizedBase) return path;
+	if (path === '/') return `${normalizedBase}/`;
+	return `${normalizedBase}${path}`;
+};
+
+const stripBase = (path: string) => {
+	if (!normalizedBase) return path;
+	if (path === normalizedBase) return '/';
+	if (path.startsWith(`${normalizedBase}/`)) {
+		return path.slice(normalizedBase.length) || '/';
+	}
+
+	return path;
+};
 
 const normalizePath = (path: string) => {
 	if (path === '/') return path;
 	return path.endsWith('/') ? path : `${path}/`;
 };
 
-const activePath = normalizePath(currentPath);
+const activePath = normalizePath(stripBase(currentPath));
 ---
 
 <header class="fixed inset-x-0 top-0 z-20 border-b border-neutral-200/80 bg-stone-50/95 backdrop-blur">
 	<div class="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-5 sm:flex-row sm:items-start sm:justify-between sm:px-8">
 		<a
-			href="/"
+			href={withBase('/')}
 			class="w-fit text-xs font-medium uppercase tracking-[0.24em] text-neutral-950 transition-colors hover:text-neutral-500"
 		>
 			Louane Breteaudeau
@@ -33,7 +51,7 @@ const activePath = normalizePath(currentPath);
 						return (
 							<li>
 								<a
-									href={item.href}
+									href={withBase(item.href)}
 									aria-current={isActive ? 'page' : undefined}
 									class:list={[
 										'transition-colors hover:text-neutral-950',
