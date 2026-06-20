@@ -1,0 +1,72 @@
+---
+import ProjectIndex from '../components/ProjectIndex.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const projects = [
+	{
+		title: 'Seuils habités',
+		description:
+			"Transformation d'un rez-de-ville en atelier public, entre espace productif, lieu d'exposition et passage quotidien.",
+		meta: 'Atelier L3 - espace public',
+		panels: [
+			{ type: 'image', legend: 'Plan masse', tone: 'stone' },
+			{ type: 'image', legend: "Maquette d'étude", tone: 'sage' },
+			{
+				type: 'text',
+				label: "Note d'intention",
+				title: 'Un seuil qui ralentit la rue',
+				body:
+					'Le projet installe une séquence progressive entre trottoir, atelier et cour. Les usages se croisent sans se superposer, portes ouvertes le jour, volumes plus contenus le soir.',
+			},
+			{ type: 'image', legend: 'Coupe habitée', tone: 'clay' },
+			{ type: 'image', legend: "Séquence d'accès", tone: 'steel' },
+		],
+	},
+	{
+		title: 'Maison-patio',
+		description:
+			"Habitat compact organisé autour d'un vide central, pensé comme une pièce extérieure pour la lumière, les circulations et les usages communs.",
+		meta: 'Atelier L2 - logement',
+		panels: [
+			{ type: 'image', legend: 'Axonométrie générale', tone: 'sage' },
+			{
+				type: 'text',
+				label: 'Recherche',
+				title: 'La cour comme pièce principale',
+				body:
+					"Les espaces domestiques s'ouvrent vers un patio protégé. La distribution devient une promenade courte, lisible, capable de multiplier les vues sans agrandir le volume bâti.",
+			},
+			{ type: 'image', legend: 'Plan du rez-de-chaussée', tone: 'stone' },
+			{ type: 'image', legend: 'Façade intérieure', tone: 'steel' },
+		],
+	},
+	{
+		title: 'Bibliothèque de quartier',
+		description:
+			"Équipement culturel de proximité composé comme une succession de plateaux calmes, depuis l'accueil ouvert jusqu'aux espaces de lecture silencieux.",
+		meta: 'Atelier M1 - équipement',
+		panels: [
+			{ type: 'image', legend: 'Insertion urbaine', tone: 'steel' },
+			{ type: 'image', legend: 'Structure et trame', tone: 'stone' },
+			{
+				type: 'text',
+				label: 'Ambiance',
+				title: 'Des profondeurs de lecture',
+				body:
+					'Les plateaux alternent zones traversées et alcôves plus basses. La lumière naturelle guide les déplacements, tandis que le mobilier fixe définit les seuils de concentration.',
+			},
+			{ type: 'image', legend: 'Vue intérieure', tone: 'clay' },
+			{ type: 'image', legend: 'Coupe longitudinale', tone: 'sage' },
+		],
+	},
+] as const;
+---
+
+<BaseLayout title="Projets scolaires">
+	<ProjectIndex
+		title="Projets scolaires"
+		intro="Une sélection de recherches académiques autour de l'habiter, des seuils, des espaces publics et des équipements de proximité."
+		idPrefix="projets-scolaires"
+		projects={projects}
+	/>
+</BaseLayout>

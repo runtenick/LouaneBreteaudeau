@@ -1,0 +1,81 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import Header from '../components/Header.astro';
+import { routeOrder } from '../navigation';
+import '../styles/global.css';
+
+interface Props {
+	title: string;
+	description?: string;
+}
+
+const {
+	title,
+	description = "Portfolio d'architecture de Louane Breteaudeau.",
+} = Astro.props;
+
+const pageTitle =
+	title === 'Accueil'
+		? "Louane Breteaudeau - Portfolio d'architecture"
+		: `${title} - Louane Breteaudeau`;
+---
+
+<html lang="fr">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="description" content={description} />
+		<meta name="generator" content={Astro.generator} />
+		<title>{pageTitle}</title>
+		<ClientRouter />
+		<script is:inline define:vars={{ routeOrder }}>
+			const normalizeRoute = (pathname) => {
+				if (pathname === '/') return pathname;
+				return pathname.endsWith('/') ? pathname : `${pathname}/`;
+			};
+
+			const getRouteIndex = (value) => {
+				const url = value instanceof URL ? value : new URL(value, window.location.href);
+				return routeOrder.indexOf(normalizeRoute(url.pathname));
+			};
+
+			const getRouteDirection = (from, to) => {
+				const fromIndex = getRouteIndex(from);
+				const toIndex = getRouteIndex(to);
+
+				if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) {
+					return 'forward';
+				}
+
+				return toIndex > fromIndex ? 'forward' : 'back';
+			};
+
+			document.addEventListener('astro:before-preparation', (event) => {
+				const direction = getRouteDirection(event.from, event.to);
+				window.__portfolioRouteDirection = direction;
+				document.documentElement.dataset.routeDirection = direction;
+			});
+
+			document.addEventListener('astro:before-swap', (event) => {
+				const direction = window.__portfolioRouteDirection ?? getRouteDirection(event.from, event.to);
+				document.documentElement.dataset.routeDirection = direction;
+				event.newDocument.documentElement.dataset.routeDirection = direction;
+			});
+
+			document.addEventListener('astro:page-load', () => {
+				window.setTimeout(() => {
+					document.documentElement.removeAttribute('data-route-direction');
+					window.__portfolioRouteDirection = undefined;
+				}, 700);
+			});
+		</script>
+	</head>
+	<body class="min-h-screen bg-stone-50 text-neutral-950 antialiased">
+		<Header currentPath={Astro.url.pathname} />
+		<main data-page-transition class="min-h-screen pt-28 sm:pt-24">
+			<slot />
+		</main>
+	</body>
+</html>

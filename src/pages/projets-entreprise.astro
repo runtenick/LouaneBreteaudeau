@@ -1,0 +1,72 @@
+---
+import ProjectIndex from '../components/ProjectIndex.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const projects = [
+	{
+		title: 'Logements collectifs',
+		description:
+			"Participation à une phase concours pour un ensemble de logements, avec travail sur les typologies, les accès et les façades habitées.",
+		meta: 'Agence - concours',
+		panels: [
+			{ type: 'image', legend: 'Façade principale', tone: 'steel' },
+			{ type: 'image', legend: 'Plan de niveau courant', tone: 'stone' },
+			{
+				type: 'text',
+				label: 'Contribution',
+				title: 'Clarifier les usages communs',
+				body:
+					"Le travail s'est concentré sur la lisibilité des circulations, la qualité des paliers et la manière dont les logements prolongent la façade par des espaces extérieurs simples.",
+			},
+			{ type: 'image', legend: 'Étude des balcons', tone: 'sage' },
+			{ type: 'image', legend: 'Vue depuis la rue', tone: 'clay' },
+		],
+	},
+	{
+		title: "Hall d'accueil tertiaire",
+		description:
+			"Réorganisation d'un hall existant pour rendre les parcours plus évidents et donner une présence plus chaleureuse aux espaces d'attente.",
+		meta: 'Agence - restructuration',
+		panels: [
+			{ type: 'image', legend: "Plan d'aménagement", tone: 'stone' },
+			{
+				type: 'text',
+				label: 'Intention',
+				title: 'Un accueil plus lisible',
+				body:
+					"L'intervention simplifie le premier regard: banque d'accueil visible, assises intégrées, matières plus claires et seuils moins fragmentés entre entrée, attente et ascenseurs.",
+			},
+			{ type: 'image', legend: 'Élévation intérieure', tone: 'clay' },
+			{ type: 'image', legend: 'Ambiance matériaux', tone: 'sage' },
+		],
+	},
+	{
+		title: 'Étude de façade',
+		description:
+			"Développement de variantes pour une enveloppe légère, depuis la trame constructive jusqu'aux rythmes de pleins et de vides.",
+		meta: 'Agence - études',
+		panels: [
+			{ type: 'image', legend: 'Trame constructive', tone: 'steel' },
+			{ type: 'image', legend: 'Variantes de rythme', tone: 'sage' },
+			{
+				type: 'text',
+				label: 'Méthode',
+				title: 'Comparer sans figer',
+				body:
+					"Les variantes ont été préparées comme une série courte, comparable à la même échelle. Chaque hypothèse garde la même logique constructive pour isoler les effets de proportion.",
+			},
+			{ type: 'image', legend: "Détail d'assemblage", tone: 'stone' },
+			{ type: 'image', legend: 'Vue rapprochée', tone: 'clay' },
+		],
+	},
+] as const;
+---
+
+<BaseLayout title="Projets d'entreprise">
+	<ProjectIndex
+		title="Projets d'entreprise"
+		intro="Une base de présentation pour les expériences menées en agence: concours, restructurations, recherches de façade et documents de synthèse."
+		idPrefix="projets-entreprise"
+		projects={projects}
+	/>
+</BaseLayout>
