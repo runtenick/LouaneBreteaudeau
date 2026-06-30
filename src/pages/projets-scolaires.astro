@@ -8,6 +8,11 @@ const pfeB3Modules = import.meta.glob<{ default: ImageMetadata }>(
 	{ eager: true },
 );
 
+const workshopCeramisteModules = import.meta.glob<{ default: ImageMetadata }>(
+	'../assets/projects/ws-ceramique/*.png',
+	{ eager: true },
+);
+
 const pfeB3Assets = Object.entries(pfeB3Modules)
 	.sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
 	.map(([path, module]) => ({ path, image: module.default }));
@@ -16,25 +21,46 @@ const pfeB3Cover = pfeB3Assets.find(({ path }) => path.includes('00-Image de pre
 const pfeB3TitleBackground = pfeB3Assets.find(({ path }) => path.includes('00-cadmapper-issoire'))?.image;
 const pfeB3Gallery = pfeB3Assets.filter(({ path }) => !path.split('/').pop()?.startsWith('00-'));
 
-type PFEPanel =
+type NumberedImagePanel =
 	| { type: 'image'; image: ImageMetadata }
 	| { type: 'image-stack'; images: ImageMetadata[] };
 
-const pfeB3Groups = new Map<string, ImageMetadata[]>();
+const createNumberedPanels = (
+	assets: Array<{ path: string; image: ImageMetadata }>,
+): NumberedImagePanel[] => {
+	const groups = new Map<string, ImageMetadata[]>();
 
-pfeB3Gallery.forEach(({ path, image }) => {
-	const filename = path.split('/').pop() ?? '';
-	const number = filename.match(/^(\d+)-/)?.[1] ?? filename;
-	const group = pfeB3Groups.get(number) ?? [];
-	group.push(image);
-	pfeB3Groups.set(number, group);
-});
+	assets.forEach(({ path, image }) => {
+		const filename = path.split('/').pop() ?? '';
+		const number = filename.match(/^(\d+)-/)?.[1] ?? filename;
+		const group = groups.get(number) ?? [];
+		group.push(image);
+		groups.set(number, group);
+	});
 
-const pfeB3Panels: PFEPanel[] = Array.from(pfeB3Groups.values()).map((images) =>
-	images.length > 1
-		? { type: 'image-stack', images }
-		: { type: 'image', image: images[0] },
+	return Array.from(groups.values()).map((images) =>
+		images.length > 1
+			? { type: 'image-stack', images }
+			: { type: 'image', image: images[0] },
+	);
+};
+
+const pfeB3Panels = createNumberedPanels(pfeB3Gallery);
+
+const workshopCeramisteAssets = Object.entries(workshopCeramisteModules)
+	.sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+	.map(([path, module]) => ({ path, image: module.default }));
+
+const workshopCeramisteCover = workshopCeramisteAssets.find(({ path }) =>
+	path.includes('00-') && path.includes('boutique'),
+)?.image;
+const workshopCeramisteTitleBackground = workshopCeramisteAssets.find(({ path }) =>
+	path.includes('00-cadmapper-clermont-ferrand'),
+)?.image;
+const workshopCeramisteGallery = workshopCeramisteAssets.filter(
+	({ path }) => !path.split('/').pop()?.startsWith('00-'),
 );
+const workshopCeramistePanels = createNumberedPanels(workshopCeramisteGallery);
 
 const projects = [
 	{
@@ -44,22 +70,10 @@ const projects = [
 		panels: pfeB3Panels,
 	},
 	{
-		title: 'Maison-patio',
-		description:
-			"Habitat compact organisé autour d'un vide central, pensé comme une pièce extérieure pour la lumière, les circulations et les usages communs.",
-		meta: 'Atelier L2 - logement',
-		panels: [
-			{ type: 'image', legend: 'Axonométrie générale', tone: 'sage' },
-			{
-				type: 'text',
-				label: 'Recherche',
-				title: 'La cour comme pièce principale',
-				body:
-					"Les espaces domestiques s'ouvrent vers un patio protégé. La distribution devient une promenade courte, lisible, capable de multiplier les vues sans agrandir le volume bâti.",
-			},
-			{ type: 'image', legend: 'Plan du rez-de-chaussée', tone: 'stone' },
-			{ type: 'image', legend: 'Façade intérieure', tone: 'steel' },
-		],
+		title: 'Workshop céramiste',
+		cover: workshopCeramisteCover,
+		titleBackground: workshopCeramisteTitleBackground,
+		panels: workshopCeramistePanels,
 	},
 	{
 		title: 'Bibliothèque de quartier',
