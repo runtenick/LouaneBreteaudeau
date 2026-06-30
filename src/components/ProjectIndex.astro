@@ -71,7 +71,9 @@ const { title, intro, projects, idPrefix } = Astro.props;
 							aria-expanded={isOpen ? 'true' : 'false'}
 						>
 							<span
-								class={`project-cover project-cover-${projectIndex % 4}${project.cover ? ' project-cover-has-image' : ''}`}
+								class={project.cover
+									? 'project-cover project-cover-has-image'
+									: `project-cover project-cover-${projectIndex % 4}`}
 								aria-hidden="true"
 							>
 								{project.cover && (

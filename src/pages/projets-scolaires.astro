@@ -13,6 +13,11 @@ const workshopCeramisteModules = import.meta.glob<{ default: ImageMetadata }>(
 	{ eager: true },
 );
 
+const colocationCampagneModules = import.meta.glob<{ default: ImageMetadata }>(
+	'../assets/projects/colocation-a-la-campagne/*.png',
+	{ eager: true },
+);
+
 const pfeB3Assets = Object.entries(pfeB3Modules)
 	.sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
 	.map(([path, module]) => ({ path, image: module.default }));
@@ -62,6 +67,13 @@ const workshopCeramisteGallery = workshopCeramisteAssets.filter(
 );
 const workshopCeramistePanels = createNumberedPanels(workshopCeramisteGallery);
 
+const colocationCampagneAssets = Object.entries(colocationCampagneModules)
+	.sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+	.map(([path, module]) => ({ path, image: module.default }));
+
+const colocationCampagneCover = colocationCampagneAssets[0]?.image;
+const colocationCampagnePanels = createNumberedPanels(colocationCampagneAssets.slice(1));
+
 const projects = [
 	{
 		title: 'PFE B3',
@@ -76,23 +88,9 @@ const projects = [
 		panels: workshopCeramistePanels,
 	},
 	{
-		title: 'Bibliothèque de quartier',
-		description:
-			"Équipement culturel de proximité composé comme une succession de plateaux calmes, depuis l'accueil ouvert jusqu'aux espaces de lecture silencieux.",
-		meta: 'Atelier M1 - équipement',
-		panels: [
-			{ type: 'image', legend: 'Insertion urbaine', tone: 'steel' },
-			{ type: 'image', legend: 'Structure et trame', tone: 'stone' },
-			{
-				type: 'text',
-				label: 'Ambiance',
-				title: 'Des profondeurs de lecture',
-				body:
-					'Les plateaux alternent zones traversées et alcôves plus basses. La lumière naturelle guide les déplacements, tandis que le mobilier fixe définit les seuils de concentration.',
-			},
-			{ type: 'image', legend: 'Vue intérieure', tone: 'clay' },
-			{ type: 'image', legend: 'Coupe longitudinale', tone: 'sage' },
-		],
+		title: 'Colocation à la campagne',
+		cover: colocationCampagneCover,
+		panels: colocationCampagnePanels,
 	},
 ] as const;
 ---
