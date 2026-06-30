@@ -1,7 +1,11 @@
 ---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
 type ImagePanel = {
 	type: 'image';
-	legend: string;
+	image?: ImageMetadata;
+	legend?: string;
 	tone?: 'stone' | 'sage' | 'clay' | 'steel';
 };
 
@@ -12,12 +16,19 @@ type TextPanel = {
 	body: string;
 };
 
-type ProjectPanel = ImagePanel | TextPanel;
+type ImageStackPanel = {
+	type: 'image-stack';
+	images: readonly ImageMetadata[];
+};
+
+type ProjectPanel = ImagePanel | ImageStackPanel | TextPanel;
 
 type Project = {
 	title: string;
-	description: string;
-	meta: string;
+	description?: string;
+	meta?: string;
+	cover?: ImageMetadata;
+	titleBackground?: ImageMetadata;
 	panels: readonly ProjectPanel[];
 };
 
@@ -59,22 +70,45 @@ const { title, intro, projects, idPrefix } = Astro.props;
 							aria-controls={panelId}
 							aria-expanded={isOpen ? 'true' : 'false'}
 						>
-							<span class={`project-cover project-cover-${projectIndex % 4}`} aria-hidden="true">
+							<span
+								class={`project-cover project-cover-${projectIndex % 4}${project.cover ? ' project-cover-has-image' : ''}`}
+								aria-hidden="true"
+							>
+								{project.cover && (
+									<Image
+										src={project.cover}
+										alt=""
+										widths={[640, 960, 1440, 1920]}
+										sizes="(min-width: 1024px) 75vw, 100vw"
+										class="project-cover-image"
+									/>
+								)}
 								<span class="project-cover-index">{number}</span>
-								<span class="project-cover-frame"></span>
+								{!project.cover && <span class="project-cover-frame"></span>}
 							</span>
 
-							<span class="flex min-h-72 flex-col justify-between border-t border-neutral-200 px-5 py-6 sm:px-8 lg:min-h-0 lg:border-l lg:border-t-0 lg:px-8 lg:py-9">
-								<span>
-									<span class="text-[0.62rem] font-medium uppercase tracking-[0.22em] text-neutral-400">
-										{project.meta}
-									</span>
+							<span class={`project-summary flex min-h-72 flex-col justify-between border-t border-neutral-200 px-5 py-6 sm:px-8 lg:min-h-0 lg:border-l lg:border-t-0 lg:px-8 lg:py-9${project.titleBackground ? ' project-summary-has-image' : ''}`}>
+								{project.titleBackground && (
+									<Image
+										src={project.titleBackground}
+										alt=""
+										class="project-summary-image"
+									/>
+								)}
+								<span class="project-summary-content">
+									{project.meta && (
+										<span class="text-[0.62rem] font-medium uppercase tracking-[0.22em] text-neutral-400">
+											{project.meta}
+										</span>
+									)}
 									<span class="mt-5 block text-3xl font-light leading-none tracking-normal text-neutral-950 sm:text-4xl">
 										{project.title}
 									</span>
-									<span class="mt-5 block text-sm font-light leading-6 text-neutral-500">
-										{project.description}
-									</span>
+									{project.description && (
+										<span class="mt-5 block text-sm font-light leading-6 text-neutral-500">
+											{project.description}
+										</span>
+									)}
 								</span>
 
 								<span class="project-state mt-10 h-9 w-9 self-start rounded-full border border-neutral-300 text-center text-2xl font-light leading-8 text-neutral-500 transition-colors duration-300" aria-hidden="true"></span>
@@ -87,7 +121,7 @@ const { title, intro, projects, idPrefix } = Astro.props;
 									<div class="sticky top-32">
 										<p class="text-[0.62rem] font-medium uppercase tracking-[0.22em]">{number}</p>
 										<h2 class="mt-5 text-2xl font-light leading-tight text-neutral-950">{project.title}</h2>
-										<p class="mt-4 text-sm font-light leading-6">{project.description}</p>
+										{project.description && <p class="mt-4 text-sm font-light leading-6">{project.description}</p>}
 									</div>
 								</aside>
 
@@ -109,20 +143,60 @@ const { title, intro, projects, idPrefix } = Astro.props;
 																	{panel.body}
 																</p>
 															</div>
-														</section>
-													);
-												}
+																	</section>
+																);
+															}
 
-												return (
-													<figure class="project-slide w-[84vw] max-w-[58rem] shrink-0 snap-start sm:w-[68vw] lg:w-[54vw]">
-														<div class={`project-mock-image tone-${panel.tone ?? 'stone'}`} aria-hidden="true">
-															<span></span>
-														</div>
-														<figcaption class="mt-3 text-[0.68rem] font-medium uppercase tracking-[0.18em] text-neutral-500">
-															{panel.legend}
-														</figcaption>
-													</figure>
-												);
+															if (panel.type === 'image-stack') {
+																return (
+																	<figure class="project-slide w-[84vw] max-w-[58rem] shrink-0 snap-start sm:w-[68vw] lg:w-[54vw]">
+																		<button
+																			type="button"
+																			class="project-image-stack"
+																			data-image-stack
+																			aria-label="Afficher l'image suivante"
+																		>
+																			{panel.images.map((image, imageIndex) => (
+																				<Image
+																					src={image}
+																					alt=""
+																					widths={[480, 768, 1200, 1600]}
+																					sizes="(min-width: 1024px) 54vw, 84vw"
+																					class="project-stack-image"
+																					data-stack-image
+																					data-active={imageIndex === 0 ? 'true' : 'false'}
+																				/>
+																			))}
+																			<span class="project-stack-count" data-stack-count>1 / {panel.images.length}</span>
+																		</button>
+																	</figure>
+																);
+															}
+
+								return (
+									<figure class="project-slide w-[84vw] max-w-[58rem] shrink-0 snap-start sm:w-[68vw] lg:w-[54vw]">
+										{panel.image ? (
+											<div class="project-image-frame">
+												<Image
+													src={panel.image}
+													alt={panel.legend ?? ''}
+													widths={[480, 768, 1200, 1600]}
+													sizes="(min-width: 1024px) 54vw, 84vw"
+													class="project-image"
+												/>
+											</div>
+										) : (
+											<div class={`project-mock-image tone-${panel.tone ?? 'stone'}`} aria-hidden="true">
+												<span></span>
+											</div>
+										)}
+										{panel.legend && (
+											<figcaption class="mt-3 text-[0.68rem] font-medium uppercase tracking-[0.18em] text-neutral-500">
+												{panel.legend}
+											</figcaption>
+										)}
+									</figure>
+								);
 											})
 										}
 									</div>
@@ -182,6 +256,26 @@ const { title, intro, projects, idPrefix } = Astro.props;
 							project.scrollIntoView({ block: 'start', behavior: 'smooth' });
 						}, 120);
 					}
+				});
+			});
+
+			root.querySelectorAll('[data-image-stack]').forEach((stack) => {
+				if (!(stack instanceof HTMLButtonElement)) return;
+
+				const images = Array.from(stack.querySelectorAll('[data-stack-image]'));
+				const count = stack.querySelector('[data-stack-count]');
+				let activeIndex = 0;
+
+				stack.addEventListener('click', () => {
+					activeIndex = (activeIndex + 1) % images.length;
+
+					images.forEach((image, imageIndex) => {
+						if (image instanceof HTMLElement) {
+							image.dataset.active = String(imageIndex === activeIndex);
+						}
+					});
+
+					if (count) count.textContent = `${activeIndex + 1} / ${images.length}`;
 				});
 			});
 		});
@@ -268,6 +362,11 @@ const { title, intro, projects, idPrefix } = Astro.props;
 		transform: rotate(-7deg);
 	}
 
+	.project-cover-has-image::before,
+	.project-cover-has-image::after {
+		display: none;
+	}
+
 	.project-cover-frame {
 		left: 18%;
 		top: 18%;
@@ -295,6 +394,43 @@ const { title, intro, projects, idPrefix } = Astro.props;
 		color: rgba(23, 23, 23, 0.56);
 	}
 
+	.project-cover-image {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.project-summary {
+		position: relative;
+		overflow: hidden;
+	}
+
+	.project-summary-has-image::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+		background: linear-gradient(180deg, rgba(250, 250, 249, 0.38), rgba(250, 250, 249, 0.68));
+		pointer-events: none;
+	}
+
+	.project-summary-image {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		object-position: center;
+	}
+
+	.project-summary-content,
+	.project-summary .project-state {
+		position: relative;
+		z-index: 2;
+	}
+
 	.project-cover-1 {
 		background-color: #d7ddd6;
 	}
@@ -311,6 +447,63 @@ const { title, intro, projects, idPrefix } = Astro.props;
 		scrollbar-color: #a8a29e transparent;
 		scrollbar-width: thin;
 		scroll-snap-type: x mandatory;
+	}
+
+	.project-image-frame {
+		display: flex;
+		height: clamp(28rem, 58vh, 42rem);
+		align-items: center;
+		justify-content: center;
+		overflow: hidden;
+		border: 1px solid rgba(23, 23, 23, 0.12);
+		background: #fff;
+	}
+
+	.project-image {
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+	}
+
+	.project-image-stack {
+		position: relative;
+		display: block;
+		height: clamp(28rem, 58vh, 42rem);
+		width: 100%;
+		cursor: pointer;
+		overflow: hidden;
+		border: 1px solid rgba(23, 23, 23, 0.12);
+		background: #fff;
+		box-shadow:
+			6px 6px 0 #f5f5f4,
+			12px 12px 0 #e7e5e4;
+	}
+
+	.project-stack-image {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+		opacity: 0;
+		transition: opacity 300ms ease;
+	}
+
+	.project-stack-image[data-active='true'] {
+		opacity: 1;
+	}
+
+	.project-stack-count {
+		position: absolute;
+		right: 1rem;
+		bottom: 1rem;
+		z-index: 1;
+		padding: 0.4rem 0.65rem;
+		background: rgba(250, 250, 249, 0.88);
+		font-size: 0.62rem;
+		font-weight: 500;
+		letter-spacing: 0.16em;
+		color: #525252;
 	}
 
 	.project-mock-image {

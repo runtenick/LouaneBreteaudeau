@@ -1,26 +1,47 @@
 ---
 import ProjectIndex from '../components/ProjectIndex.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import type { ImageMetadata } from 'astro';
+
+const pfeB3Modules = import.meta.glob<{ default: ImageMetadata }>(
+	'../assets/projects/pfe-b3/*.{png,svg}',
+	{ eager: true },
+);
+
+const pfeB3Assets = Object.entries(pfeB3Modules)
+	.sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+	.map(([path, module]) => ({ path, image: module.default }));
+
+const pfeB3Cover = pfeB3Assets.find(({ path }) => path.includes('00-Image de presentation'))?.image;
+const pfeB3TitleBackground = pfeB3Assets.find(({ path }) => path.includes('00-cadmapper-issoire'))?.image;
+const pfeB3Gallery = pfeB3Assets.filter(({ path }) => !path.split('/').pop()?.startsWith('00-'));
+
+type PFEPanel =
+	| { type: 'image'; image: ImageMetadata }
+	| { type: 'image-stack'; images: ImageMetadata[] };
+
+const pfeB3Groups = new Map<string, ImageMetadata[]>();
+
+pfeB3Gallery.forEach(({ path, image }) => {
+	const filename = path.split('/').pop() ?? '';
+	const number = filename.match(/^(\d+)-/)?.[1] ?? filename;
+	const group = pfeB3Groups.get(number) ?? [];
+	group.push(image);
+	pfeB3Groups.set(number, group);
+});
+
+const pfeB3Panels: PFEPanel[] = Array.from(pfeB3Groups.values()).map((images) =>
+	images.length > 1
+		? { type: 'image-stack', images }
+		: { type: 'image', image: images[0] },
+);
 
 const projects = [
 	{
-		title: 'Seuils habités',
-		description:
-			"Transformation d'un rez-de-ville en atelier public, entre espace productif, lieu d'exposition et passage quotidien.",
-		meta: 'Atelier L3 - espace public',
-		panels: [
-			{ type: 'image', legend: 'Plan masse', tone: 'stone' },
-			{ type: 'image', legend: "Maquette d'étude", tone: 'sage' },
-			{
-				type: 'text',
-				label: "Note d'intention",
-				title: 'Un seuil qui ralentit la rue',
-				body:
-					'Le projet installe une séquence progressive entre trottoir, atelier et cour. Les usages se croisent sans se superposer, portes ouvertes le jour, volumes plus contenus le soir.',
-			},
-			{ type: 'image', legend: 'Coupe habitée', tone: 'clay' },
-			{ type: 'image', legend: "Séquence d'accès", tone: 'steel' },
-		],
+		title: 'PFE B3',
+		cover: pfeB3Cover,
+		titleBackground: pfeB3TitleBackground,
+		panels: pfeB3Panels,
 	},
 	{
 		title: 'Maison-patio',

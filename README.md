@@ -11,18 +11,25 @@ Astro foundation for Louane Breteaudeau's architecture student portfolio website
 
 ## Local Development
 
-Use Node.js `>=22.12.0`.
+Use Node.js `>=22.12.0`. Node 24 is recommended and pinned in `.nvmrc`
+for version managers such as `nvm` and `fnm`.
 
 Install dependencies:
 
 ```sh
-npm install
+npm ci
 ```
 
 Start the local dev server:
 
 ```sh
 npm run dev
+```
+
+Because the site is configured for a GitHub Pages project path, open:
+
+```text
+http://localhost:4321/LouaneBreteaudeau/
 ```
 
 Build the static site:
