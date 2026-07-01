@@ -34,6 +34,11 @@ const joVideoModules = import.meta.glob<string>('../assets/projects/jo/*.mp4', {
 	import: 'default',
 });
 
+const pfeM2Modules = import.meta.glob<{ default: ImageMetadata }>(
+	'../assets/projects/pfe-m2/*.png',
+	{ eager: true },
+);
+
 const pfeB3Assets = Object.entries(pfeB3Modules)
 	.sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
 	.map(([path, module]) => ({ path, image: module.default }));
@@ -43,8 +48,8 @@ const pfeB3TitleBackground = pfeB3Assets.find(({ path }) => path.includes('00-ca
 const pfeB3Gallery = pfeB3Assets.filter(({ path }) => !path.split('/').pop()?.startsWith('00-'));
 
 type NumberedImagePanel =
-	| { type: 'image'; image: ImageMetadata; rotate?: 90; fit?: 'cover' }
-	| { type: 'image-stack'; images: ImageMetadata[]; rotate?: 90; fit?: 'cover' };
+	| { type: 'image'; image: ImageMetadata; rotate?: 90; fit?: 'cover'; frameFit?: 'adaptive' }
+	| { type: 'image-stack'; images: ImageMetadata[]; rotate?: 90; fit?: 'cover'; frameFit?: 'adaptive' };
 
 const createNumberedPanels = (
 	assets: Array<{ path: string; image: ImageMetadata }>,
@@ -131,6 +136,25 @@ const joPanels = [
 	...(joVideo ? [{ type: 'video' as const, src: joVideo }] : []),
 ];
 
+const pfeM2Assets = Object.entries(pfeM2Modules)
+	.sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+	.map(([path, module]) => ({ path, image: module.default }));
+
+const pfeM2Cover = pfeM2Assets.find(({ path }) => path.includes('05-Image int bs'))?.image;
+const pfeM2TitleBackground = pfeM2Assets.find(({ path }) =>
+	path.includes('00-cadmapper-la-bourboule'),
+)?.image;
+const pfeM2Gallery = pfeM2Assets.filter(
+	({ path }) =>
+		!path.includes('00-cadmapper-la-bourboule') &&
+		!path.includes('05-Image int bs'),
+);
+const pfeM2Panels = createNumberedPanels(pfeM2Gallery).map((panel) => ({
+	...panel,
+	fit: 'cover' as const,
+	frameFit: 'adaptive' as const,
+}));
+
 const projects = [
 	{
 		title: 'PFE B3',
@@ -160,6 +184,12 @@ const projects = [
 		title: 'JO',
 		cover: joCover,
 		panels: joPanels,
+	},
+	{
+		title: 'Le cosmopolitan pfe master',
+		cover: pfeM2Cover,
+		titleBackground: pfeM2TitleBackground,
+		panels: pfeM2Panels,
 	},
 ] as const;
 ---

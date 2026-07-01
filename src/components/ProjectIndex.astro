@@ -9,6 +9,7 @@ type ImagePanel = {
 	tone?: 'stone' | 'sage' | 'clay' | 'steel';
 	rotate?: 90;
 	fit?: 'cover';
+	frameFit?: 'adaptive';
 };
 
 type TextPanel = {
@@ -23,6 +24,7 @@ type ImageStackPanel = {
 	images: readonly ImageMetadata[];
 	rotate?: 90;
 	fit?: 'cover';
+	frameFit?: 'adaptive';
 };
 
 type VideoPanel = {
@@ -51,6 +53,9 @@ interface Props {
 }
 
 const { title, intro, projects, idPrefix } = Astro.props;
+
+const getImageRatio = (image: ImageMetadata) => `${image.width} / ${image.height}`;
+const getImageStyle = (image: ImageMetadata) => `--project-image-ratio: ${getImageRatio(image)}`;
 ---
 
 <section class="project-index mx-auto w-full max-w-[1800px]" data-project-index>
@@ -183,9 +188,18 @@ const { title, intro, projects, idPrefix } = Astro.props;
 														);
 													}
 
-													if (panel.type === 'image-stack') {
-																return (
-																	<figure class="project-slide w-[84vw] max-w-[58rem] shrink-0 snap-start sm:w-[68vw] lg:w-[54vw]">
+											if (panel.type === 'image-stack') {
+														return (
+															<figure
+																class:list={[
+																	'project-slide shrink-0 snap-start',
+																	panel.frameFit === 'adaptive'
+																		? 'project-media-slide'
+																		: 'w-[84vw] max-w-[58rem] sm:w-[68vw] lg:w-[54vw]',
+																]}
+																style={panel.frameFit === 'adaptive' ? getImageStyle(panel.images[0]) : undefined}
+																data-image-stack-slide
+															>
 																		<button
 																			type="button"
 																			class="project-image-stack"
@@ -203,6 +217,7 @@ const { title, intro, projects, idPrefix } = Astro.props;
 																'project-image-cover': panel.fit === 'cover',
 															}]}
 																					data-stack-image
+																					data-image-ratio={getImageRatio(image)}
 																					data-active={imageIndex === 0 ? 'true' : 'false'}
 																				/>
 																			))}
@@ -213,7 +228,15 @@ const { title, intro, projects, idPrefix } = Astro.props;
 															}
 
 								return (
-									<figure class="project-slide w-[84vw] max-w-[58rem] shrink-0 snap-start sm:w-[68vw] lg:w-[54vw]">
+									<figure
+										class:list={[
+											'project-slide shrink-0 snap-start',
+											panel.image && panel.frameFit === 'adaptive'
+												? 'project-media-slide'
+												: 'w-[84vw] max-w-[58rem] sm:w-[68vw] lg:w-[54vw]',
+										]}
+										style={panel.image && panel.frameFit === 'adaptive' ? getImageStyle(panel.image) : undefined}
+									>
 										{panel.image ? (
 											<div class="project-image-frame">
 												<Image
@@ -306,6 +329,7 @@ const { title, intro, projects, idPrefix } = Astro.props;
 
 				const images = Array.from(stack.querySelectorAll('[data-stack-image]'));
 				const count = stack.querySelector('[data-stack-count]');
+				const slide = stack.closest('[data-image-stack-slide]');
 				let activeIndex = 0;
 
 				stack.addEventListener('click', () => {
@@ -316,6 +340,11 @@ const { title, intro, projects, idPrefix } = Astro.props;
 							image.dataset.active = String(imageIndex === activeIndex);
 						}
 					});
+
+					const activeImage = images[activeIndex];
+					if (slide instanceof HTMLElement && activeImage instanceof HTMLElement) {
+						slide.style.setProperty('--project-image-ratio', activeImage.dataset.imageRatio ?? '1');
+					}
 
 					if (count) count.textContent = `${activeIndex + 1} / ${images.length}`;
 				});
@@ -505,11 +534,24 @@ const { title, intro, projects, idPrefix } = Astro.props;
 	.project-image-frame {
 		display: flex;
 		height: clamp(28rem, 58vh, 42rem);
+		width: 100%;
 		align-items: center;
 		justify-content: center;
 		overflow: hidden;
 		border: 1px solid rgba(23, 23, 23, 0.12);
 		background: #fff;
+	}
+
+	.project-media-slide {
+		height: clamp(28rem, 58vh, 42rem);
+		width: auto;
+		max-width: min(84vw, 58rem);
+		aspect-ratio: var(--project-image-ratio);
+		transition: width 300ms ease;
+	}
+
+	.project-media-slide .project-image-frame {
+		height: 100%;
 	}
 
 	.project-image {
@@ -568,6 +610,10 @@ const { title, intro, projects, idPrefix } = Astro.props;
 
 	.project-image-cover {
 		object-fit: cover;
+	}
+
+	.project-media-slide .project-image-stack {
+		height: 100%;
 	}
 
 	.project-stack-count {
@@ -675,6 +721,18 @@ const { title, intro, projects, idPrefix } = Astro.props;
 
 		.project-mock-image {
 			min-height: 18rem;
+		}
+	}
+
+	@media (min-width: 640px) {
+		.project-media-slide {
+			max-width: min(68vw, 58rem);
+		}
+	}
+
+	@media (min-width: 1024px) {
+		.project-media-slide {
+			max-width: min(54vw, 58rem);
 		}
 	}
 
