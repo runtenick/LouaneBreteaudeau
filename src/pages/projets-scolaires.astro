@@ -18,6 +18,11 @@ const colocationCampagneModules = import.meta.glob<{ default: ImageMetadata }>(
 	{ eager: true },
 );
 
+const jaudeModules = import.meta.glob<{ default: ImageMetadata }>(
+	'../assets/projects/jaude/*.png',
+	{ eager: true },
+);
+
 const pfeB3Assets = Object.entries(pfeB3Modules)
 	.sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
 	.map(([path, module]) => ({ path, image: module.default }));
@@ -27,12 +32,13 @@ const pfeB3TitleBackground = pfeB3Assets.find(({ path }) => path.includes('00-ca
 const pfeB3Gallery = pfeB3Assets.filter(({ path }) => !path.split('/').pop()?.startsWith('00-'));
 
 type NumberedImagePanel =
-	| { type: 'image'; image: ImageMetadata; rotate?: 90 }
-	| { type: 'image-stack'; images: ImageMetadata[]; rotate?: 90 };
+	| { type: 'image'; image: ImageMetadata; rotate?: 90; fit?: 'cover' }
+	| { type: 'image-stack'; images: ImageMetadata[]; rotate?: 90; fit?: 'cover' };
 
 const createNumberedPanels = (
 	assets: Array<{ path: string; image: ImageMetadata }>,
 	rotatedGroups: readonly string[] = [],
+	coverGroups: readonly string[] = [],
 ): NumberedImagePanel[] => {
 	const groups = new Map<string, ImageMetadata[]>();
 
@@ -46,8 +52,18 @@ const createNumberedPanels = (
 
 	return Array.from(groups.entries()).map(([number, images]) =>
 		images.length > 1
-			? { type: 'image-stack', images, rotate: rotatedGroups.includes(number) ? 90 : undefined }
-			: { type: 'image', image: images[0], rotate: rotatedGroups.includes(number) ? 90 : undefined },
+			? {
+					type: 'image-stack',
+					images,
+					rotate: rotatedGroups.includes(number) ? 90 : undefined,
+					fit: coverGroups.includes(number) ? 'cover' : undefined,
+				}
+			: {
+					type: 'image',
+					image: images[0],
+					rotate: rotatedGroups.includes(number) ? 90 : undefined,
+					fit: coverGroups.includes(number) ? 'cover' : undefined,
+				},
 	);
 };
 
@@ -75,6 +91,19 @@ const colocationCampagneAssets = Object.entries(colocationCampagneModules)
 const colocationCampagneCover = colocationCampagneAssets[0]?.image;
 const colocationCampagnePanels = createNumberedPanels(colocationCampagneAssets.slice(1));
 
+const jaudeAssets = Object.entries(jaudeModules)
+	.sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+	.map(([path, module]) => ({ path, image: module.default }));
+
+const jaudeCover = jaudeAssets.find(({ path }) => path.includes('00-isometrie'))?.image;
+const jaudeTitleBackground = jaudeAssets.find(({ path }) =>
+	path.includes('00-cadmapper-clermont-ferrand'),
+)?.image;
+const jaudeGallery = jaudeAssets.filter(
+	({ path }) => !path.split('/').pop()?.startsWith('00-'),
+);
+const jaudePanels = createNumberedPanels(jaudeGallery, [], ['06', '07', '08']);
+
 const projects = [
 	{
 		title: 'PFE B3',
@@ -92,6 +121,13 @@ const projects = [
 		title: 'Colocation à la campagne',
 		cover: colocationCampagneCover,
 		panels: colocationCampagnePanels,
+	},
+	{
+		title: 'Jaude',
+		cover: jaudeCover,
+		coverFit: 'contained',
+		titleBackground: jaudeTitleBackground,
+		panels: jaudePanels,
 	},
 ] as const;
 ---

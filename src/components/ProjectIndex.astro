@@ -8,6 +8,7 @@ type ImagePanel = {
 	legend?: string;
 	tone?: 'stone' | 'sage' | 'clay' | 'steel';
 	rotate?: 90;
+	fit?: 'cover';
 };
 
 type TextPanel = {
@@ -21,6 +22,7 @@ type ImageStackPanel = {
 	type: 'image-stack';
 	images: readonly ImageMetadata[];
 	rotate?: 90;
+	fit?: 'cover';
 };
 
 type ProjectPanel = ImagePanel | ImageStackPanel | TextPanel;
@@ -30,6 +32,7 @@ type Project = {
 	description?: string;
 	meta?: string;
 	cover?: ImageMetadata;
+	coverFit?: 'contained';
 	titleBackground?: ImageMetadata;
 	panels: readonly ProjectPanel[];
 };
@@ -84,7 +87,7 @@ const { title, intro, projects, idPrefix } = Astro.props;
 										alt=""
 										widths={[640, 960, 1440, 1920]}
 										sizes="(min-width: 1024px) 75vw, 100vw"
-										class="project-cover-image"
+										class:list={['project-cover-image', { 'project-cover-image-contained': project.coverFit === 'contained' }]}
 									/>
 								)}
 								<span class="project-cover-index">{number}</span>
@@ -166,7 +169,10 @@ const { title, intro, projects, idPrefix } = Astro.props;
 																					alt=""
 																					widths={[480, 768, 1200, 1600]}
 																					sizes="(min-width: 1024px) 54vw, 84vw"
-															class:list={['project-stack-image', { 'project-image-rotated': panel.rotate === 90 }]}
+															class:list={['project-stack-image', {
+																'project-image-rotated': panel.rotate === 90,
+																'project-image-cover': panel.fit === 'cover',
+															}]}
 																					data-stack-image
 																					data-active={imageIndex === 0 ? 'true' : 'false'}
 																				/>
@@ -186,7 +192,10 @@ const { title, intro, projects, idPrefix } = Astro.props;
 													alt={panel.legend ?? ''}
 													widths={[480, 768, 1200, 1600]}
 													sizes="(min-width: 1024px) 54vw, 84vw"
-											class:list={['project-image', { 'project-image-rotated': panel.rotate === 90 }]}
+											class:list={['project-image', {
+												'project-image-rotated': panel.rotate === 90,
+												'project-image-cover': panel.fit === 'cover',
+											}]}
 												/>
 											</div>
 										) : (
@@ -410,6 +419,13 @@ const { title, intro, projects, idPrefix } = Astro.props;
 		object-fit: cover;
 	}
 
+	.project-cover-image-contained {
+		inset: 8%;
+		width: 84%;
+		height: 84%;
+		object-fit: contain;
+	}
+
 	.project-summary {
 		position: relative;
 		overflow: hidden;
@@ -503,6 +519,10 @@ const { title, intro, projects, idPrefix } = Astro.props;
 
 	.project-image-rotated {
 		transform: rotate(90deg);
+	}
+
+	.project-image-cover {
+		object-fit: cover;
 	}
 
 	.project-stack-count {
