@@ -23,6 +23,17 @@ const jaudeModules = import.meta.glob<{ default: ImageMetadata }>(
 	{ eager: true },
 );
 
+const joModules = import.meta.glob<{ default: ImageMetadata }>(
+	'../assets/projects/jo/*.{png,jpg,jpeg}',
+	{ eager: true },
+);
+
+const joVideoModules = import.meta.glob<string>('../assets/projects/jo/*.mp4', {
+	eager: true,
+	query: '?url',
+	import: 'default',
+});
+
 const pfeB3Assets = Object.entries(pfeB3Modules)
 	.sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
 	.map(([path, module]) => ({ path, image: module.default }));
@@ -104,6 +115,22 @@ const jaudeGallery = jaudeAssets.filter(
 );
 const jaudePanels = createNumberedPanels(jaudeGallery, [], ['06', '07', '08']);
 
+const joAssets = Object.entries(joModules)
+	.sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+	.map(([path, module]) => ({ path, image: module.default }));
+
+const joCover = joAssets.find(({ path }) => path.split('/').pop()?.startsWith('00-'))?.image;
+const joGallery = joAssets.filter(
+	({ path }) => !path.split('/').pop()?.startsWith('00-'),
+);
+const joVideo = Object.entries(joVideoModules).sort(([left], [right]) =>
+	left < right ? -1 : left > right ? 1 : 0,
+)[0]?.[1];
+const joPanels = [
+	...createNumberedPanels(joGallery),
+	...(joVideo ? [{ type: 'video' as const, src: joVideo }] : []),
+];
+
 const projects = [
 	{
 		title: 'PFE B3',
@@ -128,6 +155,11 @@ const projects = [
 		coverFit: 'contained',
 		titleBackground: jaudeTitleBackground,
 		panels: jaudePanels,
+	},
+	{
+		title: 'JO',
+		cover: joCover,
+		panels: joPanels,
 	},
 ] as const;
 ---
