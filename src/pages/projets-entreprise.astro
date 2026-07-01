@@ -1,63 +1,94 @@
 ---
+import type { ImageMetadata } from 'astro';
 import ProjectIndex from '../components/ProjectIndex.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 
+type ImageAsset = { path: string; image: ImageMetadata };
+
+type ImagePanel =
+	| { type: 'image'; image: ImageMetadata }
+	| { type: 'image-stack'; images: ImageMetadata[] };
+
+const crespoModules = import.meta.glob<{ default: ImageMetadata }>(
+	'../assets/projects/professional/crespo/*.{png,jpg,jpeg}',
+	{ eager: true },
+);
+
+const jakkelModules = import.meta.glob<{ default: ImageMetadata }>(
+	'../assets/projects/professional/jakkel/*.{png,jpg,jpeg}',
+	{ eager: true },
+);
+
+const picardModules = import.meta.glob<{ default: ImageMetadata }>(
+	'../assets/projects/professional/picard/*.{png,jpg,jpeg}',
+	{ eager: true },
+);
+
+const getAssets = (
+	modules: Record<string, { default: ImageMetadata }>,
+): ImageAsset[] =>
+	Object.entries(modules)
+		.sort(([left], [right]) => left.localeCompare(right, 'fr', { numeric: true }))
+		.map(([path, module]) => ({ path, image: module.default }));
+
+const getFilename = (path: string) => path.split('/').pop() ?? '';
+
+const createGroupedPanels = (
+	assets: ImageAsset[],
+	getGroup: (filename: string) => string,
+): ImagePanel[] => {
+	const groups = new Map<string, ImageMetadata[]>();
+
+	assets.forEach(({ path, image }) => {
+		const groupName = getGroup(getFilename(path));
+		const images = groups.get(groupName) ?? [];
+		images.push(image);
+		groups.set(groupName, images);
+	});
+
+	return Array.from(groups.values()).map((images) =>
+		images.length > 1
+			? { type: 'image-stack', images }
+			: { type: 'image', image: images[0] },
+	);
+};
+
+const getNumberedGroup = (filename: string) =>
+	filename.match(/^(\d+)-/)?.[1] ?? filename;
+
+const crespoAssets = getAssets(crespoModules);
+const crespoCover = crespoAssets.find(({ path }) => getFilename(path).startsWith('00-'))?.image;
+const crespoGallery = crespoAssets.filter(({ path }) => !getFilename(path).startsWith('00-'));
+const crespoPanels = createGroupedPanels(crespoGallery, getNumberedGroup);
+
+const jakkelAssets = getAssets(jakkelModules);
+const jakkelCover = jakkelAssets.find(({ path }) => getFilename(path).startsWith('00-'))?.image;
+const jakkelGallery = jakkelAssets.filter(({ path }) => !getFilename(path).startsWith('00-'));
+const jakkelPanels = createGroupedPanels(jakkelGallery, getNumberedGroup);
+
+const picardAssets = getAssets(picardModules);
+const picardCover = picardAssets.find(({ path }) => getFilename(path) === '00.png')?.image;
+const picardGallery = picardAssets.filter(({ path }) => getFilename(path) !== '00.png');
+const picardPanels = createGroupedPanels(
+	picardGallery,
+	(filename) => filename.match(/^(V\d+)-/)?.[1] ?? filename,
+);
+
 const projects = [
 	{
-		title: 'Logements collectifs',
-		description:
-			"Participation à une phase concours pour un ensemble de logements, avec travail sur les typologies, les accès et les façades habitées.",
-		meta: 'Agence - concours',
-		panels: [
-			{ type: 'image', legend: 'Façade principale', tone: 'steel' },
-			{ type: 'image', legend: 'Plan de niveau courant', tone: 'stone' },
-			{
-				type: 'text',
-				label: 'Contribution',
-				title: 'Clarifier les usages communs',
-				body:
-					"Le travail s'est concentré sur la lisibilité des circulations, la qualité des paliers et la manière dont les logements prolongent la façade par des espaces extérieurs simples.",
-			},
-			{ type: 'image', legend: 'Étude des balcons', tone: 'sage' },
-			{ type: 'image', legend: 'Vue depuis la rue', tone: 'clay' },
-		],
+		title: 'Crespo',
+		cover: crespoCover,
+		panels: crespoPanels,
 	},
 	{
-		title: "Hall d'accueil tertiaire",
-		description:
-			"Réorganisation d'un hall existant pour rendre les parcours plus évidents et donner une présence plus chaleureuse aux espaces d'attente.",
-		meta: 'Agence - restructuration',
-		panels: [
-			{ type: 'image', legend: "Plan d'aménagement", tone: 'stone' },
-			{
-				type: 'text',
-				label: 'Intention',
-				title: 'Un accueil plus lisible',
-				body:
-					"L'intervention simplifie le premier regard: banque d'accueil visible, assises intégrées, matières plus claires et seuils moins fragmentés entre entrée, attente et ascenseurs.",
-			},
-			{ type: 'image', legend: 'Élévation intérieure', tone: 'clay' },
-			{ type: 'image', legend: 'Ambiance matériaux', tone: 'sage' },
-		],
+		title: 'Jakkel',
+		cover: jakkelCover,
+		panels: jakkelPanels,
 	},
 	{
-		title: 'Étude de façade',
-		description:
-			"Développement de variantes pour une enveloppe légère, depuis la trame constructive jusqu'aux rythmes de pleins et de vides.",
-		meta: 'Agence - études',
-		panels: [
-			{ type: 'image', legend: 'Trame constructive', tone: 'steel' },
-			{ type: 'image', legend: 'Variantes de rythme', tone: 'sage' },
-			{
-				type: 'text',
-				label: 'Méthode',
-				title: 'Comparer sans figer',
-				body:
-					"Les variantes ont été préparées comme une série courte, comparable à la même échelle. Chaque hypothèse garde la même logique constructive pour isoler les effets de proportion.",
-			},
-			{ type: 'image', legend: "Détail d'assemblage", tone: 'stone' },
-			{ type: 'image', legend: 'Vue rapprochée', tone: 'clay' },
-		],
+		title: 'Picard',
+		cover: picardCover,
+		panels: picardPanels,
 	},
 ] as const;
 ---
@@ -65,7 +96,7 @@ const projects = [
 <BaseLayout title="Projets d'entreprise">
 	<ProjectIndex
 		title="Projets d'entreprise"
-		intro="Une base de présentation pour les expériences menées en agence: concours, restructurations, recherches de façade et documents de synthèse."
+		intro="Une sélection de projets développés en agence, des premières études aux documents de conception."
 		idPrefix="projets-entreprise"
 		projects={projects}
 	/>

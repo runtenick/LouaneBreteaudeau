@@ -3,7 +3,7 @@ export const siteRoutes = [
 	{ href: '/projets-scolaires/', label: 'Projets scolaires' },
 	{ href: '/projets-entreprise/', label: "Projets d'entreprise" },
 	{ href: '/cv/', label: 'CV' },
-	{ href: '/a-propos/', label: 'À propos' },
+	{ href: '/a-propos/', label: 'Mémoire' },
 ] as const;
 
 export const headerNavItems = siteRoutes.filter((route) => route.href !== '/');
