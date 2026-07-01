@@ -1,0 +1,475 @@
+---
+import memoirPdf from '../assets/Mise en page mémoire.pdf?url';
+---
+
+<section class="memoir-reader" data-memoir-reader data-pdf-url={memoirPdf} aria-labelledby="memoir-title">
+	<div class="memoir-heading">
+		<div>
+			<p class="memoir-kicker">Mémoire de master</p>
+			<h1 id="memoir-title">Mémoire</h1>
+		</div>
+		<a class="memoir-pdf-link" href={memoirPdf} target="_blank" rel="noreferrer">
+			Ouvrir le PDF
+			<span aria-hidden="true">↗</span>
+		</a>
+	</div>
+
+	<div class="memoir-loading" data-loading role="status">
+		<span class="memoir-loading-line" aria-hidden="true"><span data-loading-bar></span></span>
+		<span data-loading-label>Chargement du mémoire…</span>
+	</div>
+
+	<div class="memoir-book-shell" data-book-shell hidden>
+		<div id="memoir-book" data-book aria-label="Lecteur du mémoire"></div>
+	</div>
+
+	<div class="memoir-controls" data-controls hidden>
+		<button type="button" data-previous aria-label="Pages précédentes">
+			<span aria-hidden="true">←</span>
+			<span>Précédent</span>
+		</button>
+		<p data-page-status aria-live="polite">Page 1</p>
+		<button type="button" data-next aria-label="Pages suivantes">
+			<span>Suivant</span>
+			<span aria-hidden="true">→</span>
+		</button>
+	</div>
+
+	<p class="memoir-hint" data-hint hidden>
+		Cliquez sur les pages, faites-les glisser ou utilisez les flèches du clavier.
+	</p>
+</section>
+
+<script>
+	import * as pdfjs from 'pdfjs-dist';
+	import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+	import { PageFlip } from 'page-flip/dist/js/page-flip.module.js';
+
+	pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
+
+	type ReaderCleanup = () => void;
+	let abortPendingReader: ReaderCleanup | undefined;
+
+	const initialiseReader = async (): Promise<ReaderCleanup | undefined> => {
+		const root = document.querySelector<HTMLElement>('[data-memoir-reader]');
+		if (!root || root.dataset.initialised === 'true') return;
+
+		root.dataset.initialised = 'true';
+		const pdfUrl = root.dataset.pdfUrl;
+		const bookElement = root.querySelector<HTMLElement>('[data-book]');
+		const bookShell = root.querySelector<HTMLElement>('[data-book-shell]');
+		const loading = root.querySelector<HTMLElement>('[data-loading]');
+		const loadingBar = root.querySelector<HTMLElement>('[data-loading-bar]');
+		const loadingLabel = root.querySelector<HTMLElement>('[data-loading-label]');
+		const controls = root.querySelector<HTMLElement>('[data-controls]');
+		const previousButton = root.querySelector<HTMLButtonElement>('[data-previous]');
+		const nextButton = root.querySelector<HTMLButtonElement>('[data-next]');
+		const pageStatus = root.querySelector<HTMLElement>('[data-page-status]');
+		const hint = root.querySelector<HTMLElement>('[data-hint]');
+
+		if (
+			!pdfUrl ||
+			!bookElement ||
+			!bookShell ||
+			!loading ||
+			!loadingBar ||
+			!loadingLabel ||
+			!controls ||
+			!previousButton ||
+			!nextButton ||
+			!pageStatus ||
+			!hint
+		) return;
+
+		let active = true;
+		let pageFlip: PageFlip | undefined;
+		const objectUrls = new Map<number, string>();
+		const renderJobs = new Map<number, Promise<void>>();
+		const pageImages: HTMLImageElement[] = [];
+		const loadingTask = pdfjs.getDocument({ url: pdfUrl });
+		abortPendingReader = () => {
+			active = false;
+			void loadingTask.destroy();
+		};
+
+		loadingTask.onProgress = ({ loaded, total }: { loaded: number; total: number }) => {
+			if (!active || !total) return;
+			const progress = Math.min(100, Math.round((loaded / total) * 100));
+			loadingBar.style.width = `${progress}%`;
+			loadingLabel.textContent = `Chargement du mémoire… ${progress} %`;
+		};
+
+		try {
+			const pdf = await loadingTask.promise;
+			if (!active) return;
+
+			loadingLabel.textContent = 'Préparation des premières pages…';
+			loadingBar.style.width = '100%';
+
+			const pages = Array.from({ length: pdf.numPages }, (_, index) => {
+				const page = document.createElement('div');
+				page.className = 'memoir-page';
+				if (index === 0 || index === pdf.numPages - 1) page.dataset.density = 'hard';
+
+				const image = document.createElement('img');
+				image.alt = `Page ${index + 1} du mémoire`;
+				image.decoding = 'async';
+				image.draggable = false;
+				page.appendChild(image);
+				pageImages.push(image);
+				return page;
+			});
+
+			const renderPage = (index: number) => {
+				if (index < 0 || index >= pdf.numPages || objectUrls.has(index)) {
+					return Promise.resolve();
+				}
+				const existingJob = renderJobs.get(index);
+				if (existingJob) return existingJob;
+
+				const job = (async () => {
+					const page = await pdf.getPage(index + 1);
+					const baseViewport = page.getViewport({ scale: 1 });
+					const scale = Math.min(1.6, 960 / baseViewport.width);
+					const viewport = page.getViewport({ scale });
+					const canvas = document.createElement('canvas');
+					canvas.width = Math.ceil(viewport.width);
+					canvas.height = Math.ceil(viewport.height);
+					const context = canvas.getContext('2d', { alpha: false });
+					if (!context) return;
+
+					context.fillStyle = '#ffffff';
+					context.fillRect(0, 0, canvas.width, canvas.height);
+					await page.render({ canvas, canvasContext: context, viewport }).promise;
+					if (!active) return;
+
+					const blob = await new Promise<Blob | null>((resolve) => {
+						canvas.toBlob(resolve, 'image/jpeg', 0.94);
+					});
+					if (!blob || !active) return;
+
+					const objectUrl = URL.createObjectURL(blob);
+					objectUrls.set(index, objectUrl);
+					pageImages[index].src = objectUrl;
+					await pageImages[index].decode().catch(() => undefined);
+				})().finally(() => renderJobs.delete(index));
+
+				renderJobs.set(index, job);
+				return job;
+			};
+
+			const keepNearbyPages = (currentIndex: number) => {
+				const first = Math.max(0, currentIndex - 5);
+				const last = Math.min(pdf.numPages - 1, currentIndex + 7);
+
+				for (let index = first; index <= last; index += 1) void renderPage(index);
+				for (const [index, objectUrl] of objectUrls) {
+					if (index >= first && index <= last) continue;
+					pageImages[index].removeAttribute('src');
+					URL.revokeObjectURL(objectUrl);
+					objectUrls.delete(index);
+				}
+			};
+
+			await Promise.all([0, 1, 2, 3, 4].map(renderPage));
+			if (!active) return;
+
+			bookShell.hidden = false;
+			pageFlip = new PageFlip(bookElement, {
+				width: 595,
+				height: 842,
+				size: 'stretch',
+				minWidth: 260,
+				maxWidth: 595,
+				minHeight: 368,
+				maxHeight: 842,
+				autoSize: false,
+				showCover: true,
+				usePortrait: true,
+				drawShadow: true,
+				maxShadowOpacity: 0.22,
+				flippingTime: 850,
+				mobileScrollSupport: true,
+				clickEventForward: false,
+				showPageCorners: true,
+			});
+
+			const updateControls = (currentIndex = pageFlip?.getCurrentPageIndex() ?? 0) => {
+				if (!pageFlip) return;
+				const landscape = pageFlip.getOrientation() === 'landscape';
+				const firstPage = currentIndex + 1;
+				const lastPage = landscape && currentIndex > 0
+					? Math.min(pdf.numPages, currentIndex + 2)
+					: firstPage;
+				pageStatus.textContent = firstPage === lastPage
+					? `Page ${firstPage} / ${pdf.numPages}`
+					: `Pages ${firstPage}–${lastPage} / ${pdf.numPages}`;
+				previousButton.disabled = currentIndex === 0;
+				nextButton.disabled = currentIndex >= pdf.numPages - 1;
+			};
+
+			pageFlip.on('flip', (event: { data: number }) => {
+				updateControls(event.data);
+				keepNearbyPages(event.data);
+			});
+			pageFlip.on('changeOrientation', () => updateControls());
+			pageFlip.loadFromHTML(pages);
+
+			const goPrevious = () => pageFlip?.flipPrev('top');
+			const goNext = () => pageFlip?.flipNext('top');
+			const onKeyDown = (event: KeyboardEvent) => {
+				if (event.key === 'ArrowLeft') goPrevious();
+				if (event.key === 'ArrowRight') goNext();
+			};
+
+			previousButton.addEventListener('click', goPrevious);
+			nextButton.addEventListener('click', goNext);
+			window.addEventListener('keydown', onKeyDown);
+			loading.hidden = true;
+			controls.hidden = false;
+			hint.hidden = false;
+			updateControls(0);
+			keepNearbyPages(0);
+			abortPendingReader = undefined;
+
+			return () => {
+				active = false;
+				previousButton.removeEventListener('click', goPrevious);
+				nextButton.removeEventListener('click', goNext);
+				window.removeEventListener('keydown', onKeyDown);
+				pageFlip?.destroy();
+				void loadingTask.destroy();
+				for (const url of objectUrls.values()) URL.revokeObjectURL(url);
+				objectUrls.clear();
+			};
+		} catch (error) {
+			if (!active) return;
+			console.error('Impossible de charger le mémoire.', error);
+			loadingBar.style.width = '0%';
+			loadingLabel.textContent = 'Le lecteur ne peut pas afficher le document. Vous pouvez ouvrir le PDF directement.';
+			root.dataset.initialised = 'false';
+		}
+	};
+
+	let cleanup: ReaderCleanup | undefined;
+	const start = async () => {
+		cleanup = await initialiseReader();
+	};
+	void start();
+	document.addEventListener('astro:page-load', start);
+	document.addEventListener('astro:before-swap', () => {
+		abortPendingReader?.();
+		abortPendingReader = undefined;
+		cleanup?.();
+		cleanup = undefined;
+	});
+</script>
+
+<style is:global>
+	.memoir-reader {
+		width: min(100%, 84rem);
+		margin: 0 auto;
+		padding: 2rem 1.25rem 3rem;
+	}
+
+	.memoir-reader [hidden] {
+		display: none;
+	}
+
+	.memoir-heading {
+		display: flex;
+		align-items: end;
+		justify-content: space-between;
+		gap: 2rem;
+		margin: 0 auto 1.5rem;
+	}
+
+	.memoir-kicker {
+		margin: 0 0 0.45rem;
+		font-size: 0.65rem;
+		font-weight: 500;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
+		color: #a3a3a3;
+	}
+
+	.memoir-heading h1 {
+		margin: 0;
+		font-size: clamp(1.5rem, 3vw, 2.4rem);
+		font-weight: 300;
+		letter-spacing: -0.035em;
+	}
+
+	.memoir-pdf-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding-bottom: 0.2rem;
+		border-bottom: 1px solid #d4d4d4;
+		font-size: 0.68rem;
+		font-weight: 500;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: #737373;
+		transition: border-color 180ms ease, color 180ms ease;
+	}
+
+	.memoir-pdf-link:hover {
+		border-color: #171717;
+		color: #171717;
+	}
+
+	.memoir-loading {
+		display: grid;
+		place-items: center;
+		align-content: center;
+		gap: 1rem;
+		min-height: min(70vh, 46rem);
+		font-size: 0.68rem;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: #a3a3a3;
+	}
+
+	.memoir-loading-line {
+		display: block;
+		width: min(15rem, 60vw);
+		height: 1px;
+		background: #e5e5e5;
+		overflow: hidden;
+	}
+
+	.memoir-loading-line span {
+		display: block;
+		width: 8%;
+		height: 100%;
+		background: #737373;
+		transition: width 240ms ease;
+	}
+
+	.memoir-book-shell {
+		position: relative;
+		width: 100%;
+		min-height: min(72vh, 52.625rem);
+		display: grid;
+		place-items: center;
+		padding: 1.25rem 0;
+		background: #eeece8;
+		overflow: hidden;
+	}
+
+	#memoir-book {
+		width: min(100%, 74.375rem);
+		height: min(70vh, 52.625rem);
+	}
+
+	.memoir-page {
+		background: #fff;
+		overflow: hidden;
+		box-shadow: inset 0 0 0 1px rgb(0 0 0 / 3%);
+	}
+
+	.memoir-page img {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: fill;
+		background: #fff;
+		user-select: none;
+	}
+
+	.memoir-controls {
+		display: grid;
+		grid-template-columns: 1fr auto 1fr;
+		align-items: center;
+		gap: 1rem;
+		margin-top: 1.2rem;
+	}
+
+	.memoir-controls button {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.65rem;
+		width: fit-content;
+		border: 0;
+		padding: 0.35rem 0;
+		background: transparent;
+		font: inherit;
+		font-size: 0.68rem;
+		font-weight: 500;
+		letter-spacing: 0.13em;
+		text-transform: uppercase;
+		color: #525252;
+		cursor: pointer;
+		transition: color 180ms ease, opacity 180ms ease;
+	}
+
+	.memoir-controls button:last-child {
+		justify-self: end;
+	}
+
+	.memoir-controls button:hover:not(:disabled) {
+		color: #000;
+	}
+
+	.memoir-controls button:disabled {
+		opacity: 0.25;
+		cursor: default;
+	}
+
+	.memoir-controls p,
+	.memoir-hint {
+		margin: 0;
+		font-size: 0.65rem;
+		letter-spacing: 0.1em;
+		text-align: center;
+		text-transform: uppercase;
+		color: #a3a3a3;
+	}
+
+	.memoir-hint {
+		margin-top: 0.75rem;
+		letter-spacing: 0.06em;
+		text-transform: none;
+	}
+
+	@media (max-width: 47.99rem) {
+		.memoir-reader {
+			padding-top: 1rem;
+		}
+
+		.memoir-heading {
+			align-items: start;
+		}
+
+		.memoir-book-shell {
+			min-height: min(70vh, calc((100vw - 2.5rem) * 1.415));
+			padding: 0.75rem 0;
+		}
+
+		#memoir-book {
+			width: calc(100vw - 2.5rem);
+			height: min(68vh, calc((100vw - 2.5rem) * 1.415));
+		}
+
+		.memoir-controls button[data-previous] span:last-child {
+			display: none;
+		}
+
+		.memoir-controls button:last-child span:first-child {
+			display: none;
+		}
+
+		.memoir-hint {
+			display: none;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.memoir-pdf-link,
+		.memoir-controls button,
+		.memoir-loading-line span {
+			transition: none;
+		}
+	}
+</style>
