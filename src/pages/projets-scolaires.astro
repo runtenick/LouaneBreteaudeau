@@ -27,11 +27,12 @@ const pfeB3TitleBackground = pfeB3Assets.find(({ path }) => path.includes('00-ca
 const pfeB3Gallery = pfeB3Assets.filter(({ path }) => !path.split('/').pop()?.startsWith('00-'));
 
 type NumberedImagePanel =
-	| { type: 'image'; image: ImageMetadata }
-	| { type: 'image-stack'; images: ImageMetadata[] };
+	| { type: 'image'; image: ImageMetadata; rotate?: 90 }
+	| { type: 'image-stack'; images: ImageMetadata[]; rotate?: 90 };
 
 const createNumberedPanels = (
 	assets: Array<{ path: string; image: ImageMetadata }>,
+	rotatedGroups: readonly string[] = [],
 ): NumberedImagePanel[] => {
 	const groups = new Map<string, ImageMetadata[]>();
 
@@ -43,14 +44,14 @@ const createNumberedPanels = (
 		groups.set(number, group);
 	});
 
-	return Array.from(groups.values()).map((images) =>
+	return Array.from(groups.entries()).map(([number, images]) =>
 		images.length > 1
-			? { type: 'image-stack', images }
-			: { type: 'image', image: images[0] },
+			? { type: 'image-stack', images, rotate: rotatedGroups.includes(number) ? 90 : undefined }
+			: { type: 'image', image: images[0], rotate: rotatedGroups.includes(number) ? 90 : undefined },
 	);
 };
 
-const pfeB3Panels = createNumberedPanels(pfeB3Gallery);
+const pfeB3Panels = createNumberedPanels(pfeB3Gallery, ['03']);
 
 const workshopCeramisteAssets = Object.entries(workshopCeramisteModules)
 	.sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))

@@ -7,6 +7,7 @@ type ImagePanel = {
 	image?: ImageMetadata;
 	legend?: string;
 	tone?: 'stone' | 'sage' | 'clay' | 'steel';
+	rotate?: 90;
 };
 
 type TextPanel = {
@@ -19,6 +20,7 @@ type TextPanel = {
 type ImageStackPanel = {
 	type: 'image-stack';
 	images: readonly ImageMetadata[];
+	rotate?: 90;
 };
 
 type ProjectPanel = ImagePanel | ImageStackPanel | TextPanel;
@@ -164,7 +166,7 @@ const { title, intro, projects, idPrefix } = Astro.props;
 																					alt=""
 																					widths={[480, 768, 1200, 1600]}
 																					sizes="(min-width: 1024px) 54vw, 84vw"
-																					class="project-stack-image"
+															class:list={['project-stack-image', { 'project-image-rotated': panel.rotate === 90 }]}
 																					data-stack-image
 																					data-active={imageIndex === 0 ? 'true' : 'false'}
 																				/>
@@ -184,7 +186,7 @@ const { title, intro, projects, idPrefix } = Astro.props;
 													alt={panel.legend ?? ''}
 													widths={[480, 768, 1200, 1600]}
 													sizes="(min-width: 1024px) 54vw, 84vw"
-													class="project-image"
+											class:list={['project-image', { 'project-image-rotated': panel.rotate === 90 }]}
 												/>
 											</div>
 										) : (
@@ -497,6 +499,10 @@ const { title, intro, projects, idPrefix } = Astro.props;
 
 	.project-stack-image[data-active='true'] {
 		opacity: 1;
+	}
+
+	.project-image-rotated {
+		transform: rotate(90deg);
 	}
 
 	.project-stack-count {
